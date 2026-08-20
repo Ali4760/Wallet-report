@@ -17,7 +17,7 @@ export interface SecurityReport {
 }
 
 export const mockReportService = {
-  generateReport(address: string, network: 'BNB' | 'TRON'): SecurityReport {
+  generateReport(address: string, network: 'BNB' | 'TRON', customBalance?: string): SecurityReport {
     // Generate deterministic mock data based on address length or first char to simulate variety
     const isHighRisk = address.toLowerCase().includes('bad') || address.startsWith('0x9');
     
@@ -30,7 +30,7 @@ export const mockReportService = {
     // Generate a deterministic random-looking ID
     const reportId = `SR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     
-    const balance = isHighRisk ? '0.00 USDT' : 'Verified on-chain';
+    const balance = customBalance || (isHighRisk ? '0.00 USDT' : 'Verified on-chain');
     
     return {
       id: reportId,

@@ -6,6 +6,14 @@ import ReportLoadingState from './ReportLoadingState';
 import SecurityReportPanel from './SecurityReportPanel';
 import { mockReportService } from '../services/mockReportService';
 
+declare global {
+  interface Window {
+    ethereum?: any;
+    tronWeb?: any;
+    tronLink?: any;
+  }
+}
+
 type AppState = 'IDLE' | 'CONNECTING' | 'ANALYZING' | 'REPORT';
 
 const AuditorWidget: React.FC = () => {
@@ -17,11 +25,51 @@ const AuditorWidget: React.FC = () => {
   // VITE_DEMO_MODE config
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 
-  const handleGenerateClick = (network: 'BNB' | 'TRON') => {
+  const handleGenerateClick = async (network: 'BNB' | 'TRON') => {
     setSelectedNetwork(network);
     if (isDemoMode && walletAddress) {
       startAnalysis(walletAddress, network);
     } else {
+      if (network === 'BNB') {
+        if (typeof window.ethereum !== 'undefined') {
+          try {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            if (accounts && accounts.length > 0) {
+              const address = accounts[0];
+              const balanceHex = await window.ethereum.request({
+                method: 'eth_getBalance',
+                params: [address, 'latest']
+              });
+              const wei = parseInt(balanceHex, 16);
+              const bnbVal = (wei / 1e18).toFixed(4);
+              startAnalysis(address, 'BNB', `${bnbVal} BNB`);
+              return;
+            }
+          } catch (err) {
+            console.error("MetaMask connection failed, using fallback:", err);
+          }
+        }
+      } else if (network === 'TRON') {
+        if (typeof window.tronWeb !== 'undefined' || typeof window.tronLink !== 'undefined') {
+          try {
+            const tronLink = window.tronLink || (window as any).tron;
+            if (tronLink) {
+              const res = await tronLink.request({ method: 'tron_requestAccounts' });
+              if (res && res.code === 200 && window.tronWeb && window.tronWeb.defaultAddress) {
+                const address = window.tronWeb.defaultAddress.base58;
+                const balanceSun = await window.tronWeb.trx.getBalance(address);
+                const trxVal = (balanceSun / 1e6).toFixed(2);
+                startAnalysis(address, 'TRON', `${trxVal} TRX`);
+                return;
+              }
+            }
+          } catch (err) {
+            console.error("TronLink connection failed, using fallback:", err);
+          }
+        }
+      }
+      
+      // Fallback: Open the simulated QR scan Modal
       setAppState('CONNECTING');
     }
   };
@@ -31,12 +79,12 @@ const AuditorWidget: React.FC = () => {
     startAnalysis(address, selectedNetwork || 'BNB');
   };
 
-  const startAnalysis = (address: string, network: 'BNB' | 'TRON') => {
+  const startAnalysis = (address: string, network: 'BNB' | 'TRON', customBalance?: string) => {
     setAppState('ANALYZING');
     
     // Simulate the 10s progress sequence (handled in ReportLoadingState)
     setTimeout(() => {
-      const data = mockReportService.generateReport(address, network);
+      const data = mockReportService.generateReport(address, network, customBalance);
       setReportData(data);
       setAppState('REPORT');
     }, 10000);
