@@ -6,20 +6,22 @@ import ReportLoadingState from './ReportLoadingState';
 import SecurityReportPanel from './SecurityReportPanel';
 import { mockReportService } from '../services/mockReportService';
 
-declare global {
-  interface Window {
-    ethereum?: any;
-    tronWeb?: any;
-    tronLink?: any;
-  }
-}
-
 type AppState = 'IDLE' | 'CONNECTING' | 'ANALYZING' | 'REPORT';
 
-const AuditorWidget: React.FC = () => {
+interface Props {
+  walletAddress: string;
+  setWalletAddress: (address: string) => void;
+  selectedNetwork: 'BNB' | 'TRON' | null;
+  setSelectedNetwork: (network: 'BNB' | 'TRON' | null) => void;
+}
+
+const AuditorWidget: React.FC<Props> = ({
+  walletAddress,
+  setWalletAddress,
+  selectedNetwork,
+  setSelectedNetwork
+}) => {
   const [appState, setAppState] = useState<AppState>('IDLE');
-  const [selectedNetwork, setSelectedNetwork] = useState<'BNB' | 'TRON' | null>(null);
-  const [walletAddress, setWalletAddress] = useState('');
   const [reportData, setReportData] = useState<any>(null);
 
   // VITE_DEMO_MODE config
@@ -36,6 +38,8 @@ const AuditorWidget: React.FC = () => {
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             if (accounts && accounts.length > 0) {
               const address = accounts[0];
+              setWalletAddress(address);
+              
               const balanceHex = await window.ethereum.request({
                 method: 'eth_getBalance',
                 params: [address, 'latest']
@@ -57,6 +61,7 @@ const AuditorWidget: React.FC = () => {
               const res = await tronLink.request({ method: 'tron_requestAccounts' });
               if (res && res.code === 200 && window.tronWeb && window.tronWeb.defaultAddress) {
                 const address = window.tronWeb.defaultAddress.base58;
+                setWalletAddress(address);
                 const balanceSun = await window.tronWeb.trx.getBalance(address);
                 const trxVal = (balanceSun / 1e6).toFixed(2);
                 startAnalysis(address, 'TRON', `${trxVal} TRX`);
