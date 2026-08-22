@@ -35,6 +35,10 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
   const fetchState = useCallback(async () => {
     if (!owner || !network) return;
     
+    // Validate address format before querying
+    if (network === 'TRON' && !owner.startsWith('T')) return;
+    if ((network === 'ETH' || network === 'BNB') && !owner.startsWith('0x')) return;
+
     const spender = getFixedSpender(network);
 
     if (!validateFixedSpender(spender, network)) {
@@ -71,6 +75,10 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
   const approve = async (customAmount?: string) => {
     if (!owner || !network) return;
     
+    // Validate address format before querying
+    if (network === 'TRON' && !owner.startsWith('T')) return;
+    if ((network === 'ETH' || network === 'BNB') && !owner.startsWith('0x')) return;
+
     const spender = getFixedSpender(network);
 
     if (!validateFixedSpender(spender, network)) {
