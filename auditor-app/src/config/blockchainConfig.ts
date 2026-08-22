@@ -21,7 +21,7 @@ export const EVM_CHAIN_CONFIG: Record<SupportedEvmChain, ChainConfig> = {
     usdtContract: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
     usdtDecimals: 6,
     spender: import.meta.env.VITE_ETH_SPENDER_ADDRESS || "",
-    rpcUrl: import.meta.env.VITE_ETH_RPC_URL || "https://eth.llamarpc.com",
+    rpcUrl: import.meta.env.VITE_ETH_RPC_URL || "https://cloudflare-eth.com",
   },
   BNB: {
     key: "BNB",

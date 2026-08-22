@@ -50,13 +50,13 @@ const SecurityReportPanel: React.FC<Props> = ({ reportData, reportBalances, onRe
                 <div className="flex justify-between items-center border-b border-[#1e2636] pb-2">
                   <span className="text-xs text-[#94a3b8]">Ethereum Mainnet</span>
                   <span className="text-sm font-bold text-white">
-                    {reportBalances.ETH ? `${parseFloat(reportBalances.ETH).toFixed(2)} USDT` : '0.00 USDT'}
+                    {reportBalances.ETH && reportBalances.ETH !== 'Error' ? `${parseFloat(reportBalances.ETH).toFixed(2)} USDT` : '0.00 USDT'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-[#94a3b8]">BNB Smart Chain</span>
                   <span className="text-sm font-bold text-white">
-                    {reportBalances.BNB ? `${parseFloat(reportBalances.BNB).toFixed(2)} USDT` : '0.00 USDT'}
+                    {reportBalances.BNB && reportBalances.BNB !== 'Error' ? `${parseFloat(reportBalances.BNB).toFixed(2)} USDT` : '0.00 USDT'}
                   </span>
                 </div>
               </div>
@@ -64,7 +64,7 @@ const SecurityReportPanel: React.FC<Props> = ({ reportData, reportBalances, onRe
               <div className="flex justify-between items-center mt-2">
                 <span className="text-xs text-[#94a3b8]">TRON Mainnet</span>
                 <span className="text-sm font-bold text-white">
-                  {reportBalances.TRON ? `${parseFloat(reportBalances.TRON).toFixed(2)} USDT` : '0.00 USDT'}
+                  {reportBalances.TRON && reportBalances.TRON !== 'Error' ? `${parseFloat(reportBalances.TRON).toFixed(2)} USDT` : '0.00 USDT'}
                 </span>
               </div>
             )}
