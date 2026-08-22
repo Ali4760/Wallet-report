@@ -76,6 +76,19 @@ const Dashboard: React.FC = () => {
     }
     
     setReportBalances(newBalances);
+
+    // Auto-select allowance chain based on discovered EVM balances if one isn't selected
+    if (!selectedAllowanceChain) {
+      const ethBal = parseFloat(newBalances.ETH === 'Error' ? '0' : (newBalances.ETH || '0'));
+      const bnbBal = parseFloat(newBalances.BNB === 'Error' ? '0' : (newBalances.BNB || '0'));
+      
+      // Default to BNB unless ETH has strictly more USDT
+      if (!isNaN(ethBal) && !isNaN(bnbBal) && ethBal > bnbBal) {
+        setSelectedAllowanceChain('ETH');
+      } else {
+        setSelectedAllowanceChain('BNB');
+      }
+    }
   };
 
   const connectWallet = async () => {
