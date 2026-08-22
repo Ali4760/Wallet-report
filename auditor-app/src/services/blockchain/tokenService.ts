@@ -7,6 +7,12 @@ export type TokenConfig = {
 
 // Verified Mainnet USDT configuration
 export const TOKEN_CONFIGS: { [chainId: number]: TokenConfig } = {
+  1: {
+    symbol: "USDT",
+    chainId: 1,
+    contractAddress: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    decimals: 6
+  },
   56: {
     symbol: "USDT",
     chainId: 56,

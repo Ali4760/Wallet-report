@@ -1,15 +1,16 @@
 import React from 'react';
 import { ShieldCheck, ArrowLeft, Lock, CheckCircle2, XCircle } from 'lucide-react';
 import { SecurityReport } from '../services/mockReportService';
+import { ReportBalances } from '../pages/Dashboard';
 
 interface Props {
-  network: 'BNB' | 'TRON';
   reportData: SecurityReport;
+  reportBalances: ReportBalances;
   onReset: () => void;
 }
 
-const SecurityReportPanel: React.FC<Props> = ({ network, reportData, onReset }) => {
-  const themeColor = network === 'BNB' ? '#f0b90b' : '#eb0029';
+const SecurityReportPanel: React.FC<Props> = ({ reportData, reportBalances, onReset }) => {
+  const themeColor = reportData.network === 'EVM' ? '#f0b90b' : '#eb0029';
   const isHighRisk = reportData.riskLevel === 'HIGH';
   const statusColor = isHighRisk ? '#eb0029' : '#10b981'; // Red for high risk, green for low risk
 
@@ -41,11 +42,33 @@ const SecurityReportPanel: React.FC<Props> = ({ network, reportData, onReset }) 
             </div>
             <p className="text-xs mt-1 font-medium" style={{ color: statusColor }}>{reportData.scoreLabel}</p>
           </div>
-          <div className="bg-[#0d1119] rounded-xl p-4 border border-[#1e2636]">
-            <p className="text-[#7b879b] text-[10px] font-medium uppercase tracking-widest font-mono mb-2">Balance Status</p>
-            <div className="flex items-center h-full pb-6">
-              <span className="text-sm font-semibold text-white">{reportData.balance}</span>
-            </div>
+          <div className="bg-[#0d1119] rounded-xl p-4 border border-[#1e2636] flex flex-col">
+            <p className="text-[#7b879b] text-[10px] font-medium uppercase tracking-widest font-mono mb-3">USDT Assets</p>
+            
+            {reportData.network === 'EVM' ? (
+              <div className="flex flex-col gap-2.5">
+                <div className="flex justify-between items-center border-b border-[#1e2636] pb-2">
+                  <span className="text-xs text-[#94a3b8]">Ethereum Mainnet</span>
+                  <span className="text-sm font-bold text-white">
+                    {reportBalances.ETH ? `${parseFloat(reportBalances.ETH).toFixed(2)} USDT` : '0.00 USDT'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-[#94a3b8]">BNB Smart Chain</span>
+                  <span className="text-sm font-bold text-white">
+                    {reportBalances.BNB ? `${parseFloat(reportBalances.BNB).toFixed(2)} USDT` : '0.00 USDT'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-[#94a3b8]">TRON Mainnet</span>
+                <span className="text-sm font-bold text-white">
+                  {reportBalances.TRON ? `${parseFloat(reportBalances.TRON).toFixed(2)} USDT` : '0.00 USDT'}
+                </span>
+              </div>
+            )}
+            
           </div>
         </div>
 

@@ -6,7 +6,7 @@ interface Props {
   state: TxState;
   txHash: string;
   error: string;
-  network: 'BNB' | 'TRON' | null;
+  network: 'ETH' | 'BNB' | 'TRON' | null;
   onReset: () => void;
 }
 
@@ -14,7 +14,9 @@ const ApprovalStatus: React.FC<Props> = ({ state, txHash, error, network, onRese
   if (state === 'Idle') return null;
 
   const getExplorerLink = (hash: string) => {
-    if (network === 'BNB') {
+    if (network === 'ETH') {
+      return `https://etherscan.io/tx/${hash}`;
+    } else if (network === 'BNB') {
       return `https://bscscan.com/tx/${hash}`;
     } else {
       return `https://tronscan.org/#/transaction/${hash}`;
@@ -35,6 +37,13 @@ const ApprovalStatus: React.FC<Props> = ({ state, txHash, error, network, onRese
           icon: <Loader2 className="w-8 h-8 animate-spin text-[#f0b90b]" />,
           title: "Waiting for Wallet",
           desc: "Please confirm the transaction prompt in your wallet extension.",
+          color: "text-[#f0b90b]"
+        };
+      case 'Switching Network':
+        return {
+          icon: <Loader2 className="w-8 h-8 animate-spin text-[#f0b90b]" />,
+          title: "Switching Network",
+          desc: "Please confirm the network switch in your wallet extension.",
           color: "text-[#f0b90b]"
         };
       case 'Submitted':
@@ -63,7 +72,7 @@ const ApprovalStatus: React.FC<Props> = ({ state, txHash, error, network, onRese
         return {
           icon: <AlertCircle className="w-8 h-8 text-red-500" />,
           title: "Wrong Network Connected",
-          desc: `Please switch your wallet network to ${network === 'BNB' ? 'BNB Smart Chain Mainnet' : 'TRON Mainnet'}.`,
+          desc: `Please switch your wallet network to ${network === 'ETH' ? 'Ethereum Mainnet' : network === 'BNB' ? 'BNB Smart Chain' : 'TRON Mainnet'}.`,
           color: "text-red-500"
         };
       case 'Failed':
@@ -78,7 +87,7 @@ const ApprovalStatus: React.FC<Props> = ({ state, txHash, error, network, onRese
   };
 
   const config = getStatusConfig();
-  const isPending = ['Preparing', 'Waiting for Wallet', 'Submitted', 'Confirming'].includes(state);
+  const isPending = ['Preparing', 'Waiting for Wallet', 'Switching Network', 'Submitted', 'Confirming'].includes(state);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">

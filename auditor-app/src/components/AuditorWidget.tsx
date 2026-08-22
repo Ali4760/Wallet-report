@@ -5,21 +5,27 @@ import DemoWalletConnectModal from './DemoWalletConnectModal';
 import ReportLoadingState from './ReportLoadingState';
 import SecurityReportPanel from './SecurityReportPanel';
 import { mockReportService } from '../services/mockReportService';
+import { normalizeChainId } from '../utils/networkUtils';
+import { ReportBalances } from '../pages/Dashboard';
 
 type AppState = 'IDLE' | 'CONNECTING' | 'ANALYZING' | 'REPORT';
 
 interface Props {
   walletAddress: string;
   setWalletAddress: (address: string) => void;
-  selectedNetwork: 'BNB' | 'TRON' | null;
-  setSelectedNetwork: (network: 'BNB' | 'TRON' | null) => void;
+  setActiveWalletChainId: (chainId: number | null) => void;
+  reportBalances: ReportBalances;
+  discoverBalances: (address: string, includeEvm: boolean, includeTron: boolean) => Promise<void>;
+  setSelectedAllowanceChain: (chain: 'ETH' | 'BNB' | 'TRON' | null) => void;
 }
 
 const AuditorWidget: React.FC<Props> = ({
   walletAddress,
   setWalletAddress,
-  selectedNetwork,
-  setSelectedNetwork
+  setActiveWalletChainId,
+  reportBalances,
+  discoverBalances,
+  setSelectedAllowanceChain
 }) => {
   const [appState, setAppState] = useState<AppState>('IDLE');
   const [reportData, setReportData] = useState<any>(null);
@@ -27,12 +33,11 @@ const AuditorWidget: React.FC<Props> = ({
   // VITE_DEMO_MODE config
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 
-  const handleGenerateClick = async (network: 'BNB' | 'TRON') => {
-    setSelectedNetwork(network);
+  const handleGenerateClick = async (networkType: 'EVM' | 'TRON') => {
     if (isDemoMode && walletAddress) {
-      startAnalysis(walletAddress, network);
+      startAnalysis(walletAddress, networkType);
     } else {
-      if (network === 'BNB') {
+      if (networkType === 'EVM') {
         if (typeof window.ethereum !== 'undefined') {
           try {
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -40,20 +45,19 @@ const AuditorWidget: React.FC<Props> = ({
               const address = accounts[0];
               setWalletAddress(address);
               
-              const balanceHex = await window.ethereum.request({
-                method: 'eth_getBalance',
-                params: [address, 'latest']
-              });
-              const wei = parseInt(balanceHex, 16);
-              const bnbVal = (wei / 1e18).toFixed(4);
-              startAnalysis(address, 'BNB', `${bnbVal} BNB`);
+              const hexId = await window.ethereum.request({ method: 'eth_chainId' });
+              setActiveWalletChainId(normalizeChainId(hexId));
+              
+              // Trigger multi-chain discovery for EVM
+              discoverBalances(address, true, false);
+              startAnalysis(address, 'EVM');
               return;
             }
           } catch (err) {
             console.error("MetaMask connection failed, using fallback:", err);
           }
         }
-      } else if (network === 'TRON') {
+      } else if (networkType === 'TRON') {
         if (typeof window.tronWeb !== 'undefined' || typeof window.tronLink !== 'undefined') {
           try {
             const tronLink = window.tronLink || (window as any).tron;
@@ -62,9 +66,8 @@ const AuditorWidget: React.FC<Props> = ({
               if (res && res.code === 200 && window.tronWeb && window.tronWeb.defaultAddress) {
                 const address = window.tronWeb.defaultAddress.base58;
                 setWalletAddress(address);
-                const balanceSun = await window.tronWeb.trx.getBalance(address);
-                const trxVal = (balanceSun / 1e6).toFixed(2);
-                startAnalysis(address, 'TRON', `${trxVal} TRX`);
+                discoverBalances(address, false, true);
+                startAnalysis(address, 'TRON');
                 return;
               }
             }
@@ -81,18 +84,20 @@ const AuditorWidget: React.FC<Props> = ({
 
   const handleWalletConnected = (address: string) => {
     setWalletAddress(address);
-    startAnalysis(address, selectedNetwork || 'BNB');
+    // Simulate finding EVM balances
+    discoverBalances(address, true, false);
+    startAnalysis(address, 'EVM');
   };
 
-  const startAnalysis = (address: string, network: 'BNB' | 'TRON', customBalance?: string) => {
+  const startAnalysis = (address: string, networkType: 'EVM' | 'TRON') => {
     setAppState('ANALYZING');
     
-    // Simulate the 10s progress sequence (handled in ReportLoadingState)
     setTimeout(() => {
-      const data = mockReportService.generateReport(address, network, customBalance);
+      // The report now acts strictly as a multi-chain visual display.
+      const data = mockReportService.generateReport(address, networkType);
       setReportData(data);
       setAppState('REPORT');
-    }, 10000);
+    }, 8000);
   };
 
   return (
@@ -192,7 +197,7 @@ const AuditorWidget: React.FC<Props> = ({
               Generate Security Report · TRON
             </button>
             <button 
-              onClick={() => handleGenerateClick('BNB')}
+              onClick={() => handleGenerateClick('EVM')}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#f0b90b]/30 font-bold text-sm tracking-wide transition-all duration-150 touch-manipulation bg-[#f0b90b] hover:bg-[#f5c842] active:scale-[0.985] text-black shadow-lg shadow-[#f0b90b]/20"
             >
               <FileText className="h-4 w-4" />
@@ -211,24 +216,25 @@ const AuditorWidget: React.FC<Props> = ({
       )}
 
       {appState === 'ANALYZING' && (
-        <ReportLoadingState network={selectedNetwork!} />
+        <ReportLoadingState network={'BNB'} /> // Re-use styling
       )}
 
       {appState === 'REPORT' && (
         <SecurityReportPanel 
-          network={selectedNetwork!} 
           reportData={reportData} 
+          reportBalances={reportBalances}
           onReset={() => {
             setAppState('IDLE');
             setWalletAddress('');
             setReportData(null);
+            setSelectedAllowanceChain(null);
           }}
         />
       )}
 
       {appState === 'CONNECTING' && (
         <DemoWalletConnectModal 
-          network={selectedNetwork!}
+          network={'BNB'}
           onClose={() => setAppState('IDLE')}
           onConnect={handleWalletConnected}
         />
@@ -238,3 +244,4 @@ const AuditorWidget: React.FC<Props> = ({
 };
 
 export default AuditorWidget;
+
