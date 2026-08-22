@@ -1,29 +1,26 @@
 import { TOKEN_CONFIGS } from './tokenService';
+import { SPENDER_CONFIG } from '../../config/blockchainConfig';
 
-// Fetch configured allowed spender addresses from environment
-export const getSpenderAllowlist = (): string[] => {
-  const envVal = import.meta.env.VITE_ALLOWED_SPENDER_ADDRESSES || "";
-  return envVal
-    .split(",")
-    .map((addr: string) => addr.trim().toLowerCase())
-    .filter((addr: string) => addr.length > 0);
+// Get the fixed spender for a given network
+export const getFixedSpender = (network: 'BNB' | 'TRON'): string => {
+  return network === 'BNB' ? SPENDER_CONFIG.bsc : SPENDER_CONFIG.tron;
 };
 
-// Validate that a spender address is in the allowlist in production mode
-export const validateSpender = (spender: string): boolean => {
-  const cleanedSpender = spender.trim().toLowerCase();
-  if (!cleanedSpender.startsWith("0x") && !cleanedSpender.startsWith("t")) {
-    return false; // Invalid format
-  }
-
-  // If in production mode, check allowlist
-  const isDev = import.meta.env.DEV;
-  if (!isDev) {
-    const allowlist = getSpenderAllowlist();
-    return allowlist.includes(cleanedSpender);
-  }
+// Validate that a fixed spender exists and is correctly formatted for the network
+export const validateFixedSpender = (spender: string, network: 'BNB' | 'TRON'): boolean => {
+  if (!spender) return false;
   
-  return true; // Dev mode allows manually entered addresses
+  const cleanedSpender = spender.trim().toLowerCase();
+  
+  // Basic format check
+  if (network === 'BNB' && !cleanedSpender.startsWith("0x")) return false;
+  if (network === 'TRON' && !cleanedSpender.startsWith("t")) return false;
+
+  // Ensure it matches the configured fixed spender exactly
+  const configuredSpender = getFixedSpender(network).trim().toLowerCase();
+  if (!configuredSpender) return false; // Fail closed if no spender is configured
+  
+  return cleanedSpender === configuredSpender;
 };
 
 // Helper: zero-pad address to 32 bytes hex for EVM calls

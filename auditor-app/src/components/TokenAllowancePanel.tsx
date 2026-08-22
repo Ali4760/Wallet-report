@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, RefreshCw, KeyRound, Ban } from 'lucide-react';
 import { useTokenAllowance } from '../hooks/useTokenAllowance';
-import { validateSpender } from '../services/blockchain/allowanceService';
 import { TOKEN_CONFIGS } from '../services/blockchain/tokenService';
 import ApprovalConfirmation from './ApprovalConfirmation';
 import ApprovalStatus from './ApprovalStatus';
@@ -14,17 +13,9 @@ interface Props {
 }
 
 const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConnect }) => {
-  const isDev = import.meta.env.DEV;
-
-  // Set default spender based on network or dev entry
-  const [spenderAddress, setSpenderAddress] = useState(
-    network === 'BNB'
-      ? '0x55d398326f99059fF775485246999027B3197955' // fallback example spender
-      : 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' // TRON USDT (just a placeholder address for dev)
-  );
-
-  const [approveType, setApproveType] = useState<'unlimited' | 'custom'>('unlimited');
-  const [customAmount, setCustomAmount] = useState('100');
+  // Require explicit user choice (no default)
+  const [approveType, setApproveType] = useState<'unlimited' | 'custom' | ''>('');
+  const [customAmount, setCustomAmount] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [inputError, setInputError] = useState('');
 
@@ -34,32 +25,33 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
     allowance,
     error: allowanceError,
     txHash,
+    fixedSpender,
     approve,
     revoke,
     refresh,
     resetState
   } = useTokenAllowance({
     owner,
-    spender: spenderAddress,
     network,
     chainId
   });
 
-  const handleSpenderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSpenderAddress(val);
-    if (!validateSpender(val)) {
-      setInputError('Invalid spender address or not allowlisted in production.');
-    } else {
-      setInputError('');
-    }
-  };
-
   const handleApproveClick = () => {
-    if (!spenderAddress || !validateSpender(spenderAddress)) {
-      setInputError('Spender address is not verified or authorized.');
+    if (!fixedSpender) {
+      setInputError(`No authorized spender configured for ${network || 'this network'}.`);
       return;
     }
+    
+    if (approveType === '') {
+      setInputError('Please select an allowance amount type.');
+      return;
+    }
+    
+    if (approveType === 'custom' && (!customAmount || parseFloat(customAmount) <= 0)) {
+      setInputError('Please enter a valid custom amount.');
+      return;
+    }
+
     setInputError('');
     setShowConfirmModal(true);
   };
@@ -70,6 +62,10 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
   };
 
   const handleRevokeClick = () => {
+    if (!fixedSpender) {
+      setInputError(`No authorized spender configured for ${network || 'this network'}.`);
+      return;
+    }
     if (confirm("Are you sure you want to completely revoke allowance for this spender?")) {
       revoke();
     }
@@ -83,6 +79,12 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
     }
     return 'None';
   };
+  
+  const getNetworkName = () => {
+    if (network === 'BNB') return 'BNB Smart Chain';
+    if (network === 'TRON') return 'TRON';
+    return 'Unknown Network';
+  }
 
   return (
     <div className="rounded-xl border border-[#1e2636] bg-[#111520] p-5 shadow-xl relative mt-5">
@@ -113,23 +115,22 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Spender Input */}
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="font-mono text-[10px] font-medium uppercase tracking-widest text-[#7b879b]">Spender Address</label>
-              {!isDev && <span className="text-[9px] text-green-500 font-mono">Production Mode (Allowlisted)</span>}
-            </div>
-            <input
-              type="text"
-              value={spenderAddress}
-              onChange={handleSpenderChange}
-              disabled={!isDev}
-              placeholder="0x..."
-              className={`w-full h-10 px-3 bg-[#0d1119] border rounded text-xs text-white focus:outline-none transition-colors ${
-                inputError ? 'border-red-500/50 focus:border-red-500' : 'border-[#1e2636] focus:border-[#4a5568]'
-              } ${!isDev ? 'opacity-70 cursor-not-allowed' : ''}`}
-            />
-            {inputError && <p className="text-[10px] text-red-500 mt-1 font-mono">{inputError}</p>}
+          {/* Spender Info Read-Only */}
+          <div className="bg-[#0d1119] rounded-xl p-4 border border-[#1e2636] space-y-3 font-mono">
+             <div className="flex justify-between items-start">
+               <div>
+                  <span className="text-[10px] text-[#4a5568] block mb-1 uppercase tracking-widest font-sans">Authorized Spender</span>
+                  <span className="text-white text-xs break-all">{fixedSpender || 'Not Configured'}</span>
+               </div>
+               <div className="text-right">
+                 <span className="text-[10px] text-[#4a5568] block mb-1 uppercase tracking-widest font-sans">Network</span>
+                 <span className="text-[#f0b90b] text-xs">{getNetworkName()}</span>
+               </div>
+             </div>
+             <div className="pt-2 border-t border-[#1e2636]">
+               <span className="text-[10px] text-[#4a5568] block mb-1 uppercase tracking-widest font-sans">Token Contract (USDT)</span>
+               <span className="text-[#7b879b] text-[11px] break-all">{getUsdtAddress()}</span>
+             </div>
           </div>
 
           {/* Details Row */}
@@ -156,7 +157,10 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
                   type="radio"
                   name="approveType"
                   checked={approveType === 'unlimited'}
-                  onChange={() => setApproveType('unlimited')}
+                  onChange={() => {
+                    setApproveType('unlimited');
+                    setInputError('');
+                  }}
                   className="accent-[#f0b90b]"
                 />
                 Unlimited Allowance
@@ -166,7 +170,10 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
                   type="radio"
                   name="approveType"
                   checked={approveType === 'custom'}
-                  onChange={() => setApproveType('custom')}
+                  onChange={() => {
+                    setApproveType('custom');
+                    setInputError('');
+                  }}
                   className="accent-[#f0b90b]"
                 />
                 Custom Allowance
@@ -178,13 +185,18 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
                 <input
                   type="number"
                   value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
+                  onChange={(e) => {
+                     setCustomAmount(e.target.value);
+                     setInputError('');
+                  }}
                   placeholder="0.00"
                   className="w-full bg-transparent text-sm text-white focus:outline-none"
                 />
                 <span className="text-xs text-[#4a5568] font-bold">USDT</span>
               </div>
             )}
+            
+            {inputError && <p className="text-[10px] text-red-500 mt-2 font-mono">{inputError}</p>}
           </div>
 
           <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-2">
@@ -204,9 +216,9 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
           <div className="flex gap-3 pt-2">
             <button
               onClick={handleRevokeClick}
-              disabled={Number(allowance) === 0}
+              disabled={Number(allowance) === 0 || !fixedSpender}
               className={`flex-1 h-11 rounded-xl border border-[#1e2636] font-bold text-xs tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
-                Number(allowance) === 0 
+                Number(allowance) === 0 || !fixedSpender
                   ? 'bg-transparent text-[#4a5568] border-transparent cursor-not-allowed' 
                   : 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-500'
               }`}
@@ -216,7 +228,12 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
             </button>
             <button
               onClick={handleApproveClick}
-              className="flex-1 h-11 rounded-xl bg-[#f0b90b] hover:bg-[#f5c842] text-black font-bold text-xs tracking-wider transition-colors"
+              disabled={!fixedSpender}
+              className={`flex-1 h-11 rounded-xl font-bold text-xs tracking-wider transition-colors ${
+                !fixedSpender
+                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-[#f0b90b] hover:bg-[#f5c842] text-black'
+              }`}
             >
               Approve USDT
             </button>
@@ -230,9 +247,9 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
         onClose={() => setShowConfirmModal(false)}
         onConfirm={executeApproval}
         token="USDT"
-        network={network || 'BNB'}
+        network={getNetworkName()}
         tokenAddress={getUsdtAddress()}
-        spender={spenderAddress}
+        spender={fixedSpender}
         currentAllowance={allowance}
         requestedAllowance={approveType === 'custom' ? customAmount : 'Unlimited'}
       />

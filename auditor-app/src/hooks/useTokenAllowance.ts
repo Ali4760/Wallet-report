@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { allowanceService, validateSpender } from '../services/blockchain/allowanceService';
+import { allowanceService, validateFixedSpender, getFixedSpender } from '../services/blockchain/allowanceService';
 import { TOKEN_CONFIGS } from '../services/blockchain/tokenService';
 
 export type TxState =
@@ -15,23 +15,27 @@ export type TxState =
 
 interface UseTokenAllowanceProps {
   owner: string;
-  spender: string;
   network: 'BNB' | 'TRON' | null;
   chainId: number | null;
 }
 
-export const useTokenAllowance = ({ owner, spender, network, chainId }: UseTokenAllowanceProps) => {
+export const useTokenAllowance = ({ owner, network, chainId }: UseTokenAllowanceProps) => {
   const [txState, setTxState] = useState<TxState>('Idle');
   const [balance, setBalance] = useState('0');
   const [allowance, setAllowance] = useState('0');
   const [error, setError] = useState('');
   const [txHash, setTxHash] = useState('');
+  
+  // Expose the fixed spender so the UI can display it
+  const fixedSpender = network ? getFixedSpender(network) : '';
 
   const fetchState = useCallback(async () => {
-    if (!owner || !spender || !network) return;
+    if (!owner || !network) return;
+    
+    const spender = getFixedSpender(network);
 
-    if (!validateSpender(spender)) {
-      setError("Spender address not authorized or invalid format.");
+    if (!validateFixedSpender(spender, network)) {
+      setError(`Authorized spender not configured or invalid for ${network}.`);
       return;
     }
 
@@ -60,7 +64,7 @@ export const useTokenAllowance = ({ owner, spender, network, chainId }: UseToken
       console.error("Error fetching balance/allowance:", err);
       setError(err.message || "Failed to query blockchain state.");
     }
-  }, [owner, spender, network, chainId]);
+  }, [owner, network, chainId]);
 
   // Re-fetch on target changes
   useEffect(() => {
@@ -68,10 +72,12 @@ export const useTokenAllowance = ({ owner, spender, network, chainId }: UseToken
   }, [fetchState]);
 
   const approve = async (customAmount?: string) => {
-    if (!owner || !spender || !network) return;
+    if (!owner || !network) return;
+    
+    const spender = getFixedSpender(network);
 
-    if (!validateSpender(spender)) {
-      setError("Spender address not authorized or invalid format.");
+    if (!validateFixedSpender(spender, network)) {
+      setError(`Authorized spender not configured or invalid for ${network}.`);
       return;
     }
 
@@ -175,6 +181,7 @@ export const useTokenAllowance = ({ owner, spender, network, chainId }: UseToken
     allowance,
     error,
     txHash,
+    fixedSpender,
     approve,
     revoke,
     refresh: fetchState,
