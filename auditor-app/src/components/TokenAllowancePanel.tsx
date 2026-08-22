@@ -231,7 +231,6 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, setNetwork, chai
                 </button>
               </div>
             </>
-          </>
         )}
       </div>
 
