@@ -7,6 +7,7 @@ const Dashboard: React.FC = () => {
   const [walletAddress, setWalletAddress] = useState('');
   const [selectedNetwork, setSelectedNetwork] = useState<'BNB' | 'TRON' | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
+  const [approvalSuccessCount, setApprovalSuccessCount] = useState(0);
 
   // Monitor accounts/chain changes for EVM
   useEffect(() => {
@@ -90,12 +91,14 @@ const Dashboard: React.FC = () => {
             setWalletAddress={setWalletAddress}
             selectedNetwork={selectedNetwork}
             setSelectedNetwork={setSelectedNetwork}
+            approvalSuccessCount={approvalSuccessCount}
           />
           <TokenAllowancePanel 
             owner={walletAddress}
             network={selectedNetwork}
             chainId={chainId}
             onConnect={connectWallet}
+            onApprovalConfirmed={() => setApprovalSuccessCount(c => c + 1)}
           />
         </div>
       </div>

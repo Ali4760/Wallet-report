@@ -26,6 +26,7 @@ export const useTokenAllowance = ({ owner, spender, network, chainId }: UseToken
   const [allowance, setAllowance] = useState('0');
   const [error, setError] = useState('');
   const [txHash, setTxHash] = useState('');
+  const [lastOperation, setLastOperation] = useState<'approve' | 'revoke' | null>(null);
 
   const fetchState = useCallback(async () => {
     if (!owner || !spender || !network) return;
@@ -67,7 +68,7 @@ export const useTokenAllowance = ({ owner, spender, network, chainId }: UseToken
     fetchState();
   }, [fetchState]);
 
-  const approve = async (customAmount?: string) => {
+  const approve = async (customAmount?: string, operation: 'approve' | 'revoke' = 'approve') => {
     if (!owner || !spender || !network) return;
 
     if (!validateSpender(spender)) {
@@ -76,6 +77,7 @@ export const useTokenAllowance = ({ owner, spender, network, chainId }: UseToken
     }
 
     setTxState('Preparing');
+    setLastOperation(operation);
     setError('');
     setTxHash('');
 
@@ -156,17 +158,24 @@ export const useTokenAllowance = ({ owner, spender, network, chainId }: UseToken
       }
     } catch (err: any) {
       console.error("USDT approve transaction error:", err);
-      if (err.message && (err.message.includes("User rejected") || err.message.includes("declined"))) {
+      const errMsg = err.message ? err.message.toLowerCase() : (typeof err === 'string' ? err.toLowerCase() : "");
+      if (
+        err.code === 4001 || 
+        errMsg.includes("user rejected") || 
+        errMsg.includes("declined") ||
+        errMsg.includes("user denied") ||
+        errMsg.includes("rejected by user")
+      ) {
         setTxState('Rejected');
       } else {
         setTxState('Failed');
-        setError(err.message || "Approval transaction failed.");
+        setError(err.message || (typeof err === 'string' ? err : "Approval transaction failed."));
       }
     }
   };
 
   const revoke = async () => {
-    await approve('0');
+    await approve('0', 'revoke');
   };
 
   return {
@@ -175,6 +184,7 @@ export const useTokenAllowance = ({ owner, spender, network, chainId }: UseToken
     allowance,
     error,
     txHash,
+    lastOperation,
     approve,
     revoke,
     refresh: fetchState,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShieldAlert, RefreshCw, KeyRound, Ban } from 'lucide-react';
 import { useTokenAllowance } from '../hooks/useTokenAllowance';
 import { validateSpender } from '../services/blockchain/allowanceService';
@@ -11,9 +11,10 @@ interface Props {
   network: 'BNB' | 'TRON' | null;
   chainId: number | null;
   onConnect: () => void;
+  onApprovalConfirmed?: () => void;
 }
 
-const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConnect }) => {
+const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConnect, onApprovalConfirmed }) => {
   const isDev = import.meta.env.DEV;
 
   // Set default spender based on network or dev entry
@@ -49,6 +50,7 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
     allowance,
     error: allowanceError,
     txHash,
+    lastOperation,
     approve,
     revoke,
     refresh,
@@ -59,6 +61,18 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
     network,
     chainId
   });
+
+  const reportedTxHash = useRef('');
+
+  useEffect(() => {
+    if (txState === 'Confirmed' && lastOperation === 'approve' && txHash && txHash !== reportedTxHash.current) {
+      reportedTxHash.current = txHash;
+      if (onApprovalConfirmed) {
+        onApprovalConfirmed();
+      }
+      resetState();
+    }
+  }, [txState, txHash, lastOperation, onApprovalConfirmed, resetState]);
 
   const handleSpenderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;

