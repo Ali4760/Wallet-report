@@ -20,7 +20,7 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
   const [spenderAddress, setSpenderAddress] = useState(
     network === 'BNB'
       ? '0xEfdd53261Ccd3febD063D6A57a21405B24977d15' // User-specified spender
-      : 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' // TRON USDT (just a placeholder address for dev)
+      : 'TN8HdqoXp3GbVxHWfG2bX6jFS93Ca4fyeo' // Valid TRON spender
   );
 
   const [approveType, setApproveType] = useState<'unlimited' | 'custom'>('unlimited');
