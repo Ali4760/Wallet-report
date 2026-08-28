@@ -19,7 +19,7 @@ const TokenAllowancePanel: React.FC<Props> = ({ owner, network, chainId, onConne
   // Set default spender based on network or dev entry
   const [spenderAddress, setSpenderAddress] = useState(
     network === 'BNB'
-      ? '0x55d398326f99059fF775485246999027B3197955' // fallback example spender
+      ? '0xEfdd53261Ccd3febD063D6A57a21405B24977d15' // User-specified spender
       : 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t' // TRON USDT (just a placeholder address for dev)
   );
 
