@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Activity, FileText, Lock } from 'lucide-react';
 import AnalysisSlider from './AnalysisSlider';
-import DemoWalletConnectModal from './DemoWalletConnectModal';
 import ReportLoadingState from './ReportLoadingState';
 import SecurityReportPanel, { SecurityReport } from './SecurityReportPanel';
 
@@ -26,7 +25,7 @@ const generateMockReport = (address: string, network: string, customBalance?: st
   };
 };
 
-type AppState = 'IDLE' | 'CONNECTING' | 'ANALYZING' | 'REPORT';
+type AppState = 'IDLE' | 'ANALYZING' | 'REPORT';
 
 interface Props {
   walletAddress: string;
@@ -50,18 +49,19 @@ const AuditorWidget: React.FC<Props> = ({
 
   const handleGenerateClick = async (network: 'BNB' | 'TRON') => {
     setSelectedNetwork(network);
-    if (isDemoMode && walletAddress) {
-      // Demo logic...
-    } else {
-      setAppState('CONNECTING');
+    
+    let addressToAnalyze = walletAddress;
+    
+    if (!addressToAnalyze) {
+      if (network === 'BNB') {
+        addressToAnalyze = '0x1234567890abcdef1234567890abcdef12345678';
+      } else {
+        addressToAnalyze = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+      }
+      setWalletAddress(addressToAnalyze);
     }
-  };
-
-  const handleWalletConnected = (address: string) => {
-    setWalletAddress(address);
-    if (selectedNetwork) {
-      startAnalysis(address, selectedNetwork);
-    }
+    
+    startAnalysis(addressToAnalyze, network);
   };
 
   const startAnalysis = (address: string, network: 'BNB' | 'TRON', customBalance?: string) => {
@@ -77,8 +77,8 @@ const AuditorWidget: React.FC<Props> = ({
 
   return (
     <div className="rounded-xl border border-[#1e2636] bg-[#111520] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
-      {/* Header section is consistent across IDLE and CONNECTING */}
-      {(appState === 'IDLE' || appState === 'CONNECTING') && (
+      {/* Header section is consistent across IDLE */}
+      {appState === 'IDLE' && (
         <>
           <div className="px-5 pt-5 pb-4 border-b border-[#1e2636]">
             <div className="flex items-start gap-3">
@@ -206,15 +206,6 @@ const AuditorWidget: React.FC<Props> = ({
             setReportData(null);
           }}
         />
-      )}
-
-      {appState === 'CONNECTING' && (
-        <DemoWalletConnectModal 
-          network={selectedNetwork!}
-          onClose={() => setAppState('IDLE')}
-          onConnect={handleWalletConnected}
-        />
-      )}
     </div>
   );
 };
