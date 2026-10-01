@@ -206,6 +206,7 @@ const AuditorWidget: React.FC<Props> = ({
             setReportData(null);
           }}
         />
+      )}
     </div>
   );
 };
