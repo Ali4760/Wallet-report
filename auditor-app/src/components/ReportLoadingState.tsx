@@ -41,7 +41,7 @@ const ReportLoadingState: React.FC<Props> = ({ network }) => {
   }, [progress]);
 
   return (
-    <div className="absolute inset-0 bg-[#111520] z-40 flex flex-col items-center justify-center p-8">
+    <div className="relative bg-[#111520] flex flex-col items-center justify-center p-8 py-16 w-full">
       
       <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative" style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}30`, borderWidth: 1 }}>
         <Shield className="w-8 h-8 animate-pulse" style={{ color: themeColor }} />
@@ -93,7 +93,7 @@ const ReportLoadingState: React.FC<Props> = ({ network }) => {
         })}
       </div>
 
-      <div className="absolute bottom-6 flex items-center gap-1.5">
+      <div className="mt-12 flex items-center gap-1.5">
         <Lock className="w-3 h-3 text-[#2a3444]" />
         <span className="text-[#2a3444] text-[10px] font-mono">End-to-End Encrypted Analysis</span>
       </div>
