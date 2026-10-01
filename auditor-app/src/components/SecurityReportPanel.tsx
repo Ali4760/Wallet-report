@@ -1,7 +1,19 @@
 import React from 'react';
 import { ShieldCheck, ArrowLeft, Lock, CheckCircle2, XCircle } from 'lucide-react';
-import { SecurityReport } from '../services/mockReportService';
-
+export interface SecurityReport {
+  id: string;
+  address: string;
+  network: 'BNB' | 'TRON';
+  timestamp: string;
+  score: number;
+  scoreLabel: string;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  balance: string;
+  threatsFound: number;
+  totalChecks: number;
+  checksPassed: number;
+  checks: Array<{ label: string; passed: boolean }>;
+}
 interface Props {
   network: 'BNB' | 'TRON';
   reportData: SecurityReport;

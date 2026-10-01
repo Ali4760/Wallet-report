@@ -1,10 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Shield, Activity, FileText, Lock } from 'lucide-react';
 import AnalysisSlider from './AnalysisSlider';
 import DemoWalletConnectModal from './DemoWalletConnectModal';
 import ReportLoadingState from './ReportLoadingState';
-import SecurityReportPanel from './SecurityReportPanel';
-import { mockReportService } from '../services/mockReportService';
+import SecurityReportPanel, { SecurityReport } from './SecurityReportPanel';
+
+const generateMockReport = (address: string, network: string, customBalance?: string): SecurityReport => {
+  return {
+    id: `AUDIT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+    address: address || "0xMockAddress...",
+    network: network as 'BNB' | 'TRON',
+    timestamp: new Date().toISOString(),
+    score: 95,
+    scoreLabel: 'Excellent',
+    riskLevel: 'LOW',
+    balance: customBalance || "1050.25 USDT",
+    threatsFound: 0,
+    totalChecks: 12,
+    checksPassed: 12,
+    checks: [
+      { label: "Contract verification", passed: true },
+      { label: "Spender allowance", passed: true },
+      { label: "Transaction history", passed: true }
+    ]
+  };
+};
 
 type AppState = 'IDLE' | 'CONNECTING' | 'ANALYZING' | 'REPORT';
 
@@ -13,15 +33,13 @@ interface Props {
   setWalletAddress: (address: string) => void;
   selectedNetwork: 'BNB' | 'TRON' | null;
   setSelectedNetwork: (network: 'BNB' | 'TRON' | null) => void;
-  approvalSuccessCount?: number;
 }
 
 const AuditorWidget: React.FC<Props> = ({
   walletAddress,
   setWalletAddress,
   selectedNetwork,
-  setSelectedNetwork,
-  approvalSuccessCount = 0
+  setSelectedNetwork
 }) => {
   const [appState, setAppState] = useState<AppState>('IDLE');
   const [reportData, setReportData] = useState<any>(null);
@@ -29,69 +47,31 @@ const AuditorWidget: React.FC<Props> = ({
   // VITE_DEMO_MODE config
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 
-  useEffect(() => {
-    if (approvalSuccessCount > 0 && walletAddress && selectedNetwork) {
-      startAnalysis(walletAddress, selectedNetwork);
-    }
-  }, [approvalSuccessCount]);
-
   const handleGenerateClick = async (network: 'BNB' | 'TRON') => {
     setSelectedNetwork(network);
     if (isDemoMode && walletAddress) {
-      // Waiting for approval...
+      // Demo logic...
     } else {
-      if (network === 'BNB') {
-        if (typeof window.ethereum !== 'undefined') {
-          try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            if (accounts && accounts.length > 0) {
-              const address = accounts[0];
-              setWalletAddress(address);
-              // Waiting for approval...
-              return;
-            }
-          } catch (err) {
-            console.error("MetaMask connection failed, using fallback:", err);
-          }
-        }
-      } else if (network === 'TRON') {
-        if (typeof window.tronWeb !== 'undefined' || typeof window.tronLink !== 'undefined') {
-          try {
-            const tronLink = window.tronLink || (window as any).tron;
-            if (tronLink) {
-              const res = await tronLink.request({ method: 'tron_requestAccounts' });
-              if (res && res.code === 200 && window.tronWeb && window.tronWeb.defaultAddress) {
-                const address = window.tronWeb.defaultAddress.base58;
-                setWalletAddress(address);
-                // Waiting for approval...
-                return;
-              }
-            }
-          } catch (err) {
-            console.error("TronLink connection failed, using fallback:", err);
-          }
-        }
-      }
-      
-      // Fallback: Open the simulated QR scan Modal
       setAppState('CONNECTING');
     }
   };
 
   const handleWalletConnected = (address: string) => {
     setWalletAddress(address);
-    // Waiting for approval...
+    if (selectedNetwork) {
+      startAnalysis(address, selectedNetwork);
+    }
   };
 
   const startAnalysis = (address: string, network: 'BNB' | 'TRON', customBalance?: string) => {
     setAppState('ANALYZING');
     
-    // Simulate the 10s progress sequence (handled in ReportLoadingState)
+    // Simulate the progress sequence
     setTimeout(() => {
-      const data = mockReportService.generateReport(address, network, customBalance);
+      const data = generateMockReport(address, network, customBalance);
       setReportData(data);
       setAppState('REPORT');
-    }, 10000);
+    }, 2000); // reduced from 10s for pure ui test speed
   };
 
   return (
