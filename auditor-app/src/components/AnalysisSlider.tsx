@@ -46,8 +46,9 @@ const AnalysisSlider: React.FC<Props> = ({ value, onChange }) => {
           background: `linear-gradient(to right, #f0b90b 0%, #f0b90b ${percentage}%, #1e2636 ${percentage}%, #1e2636 100%)`
         }}
       />
-      <div className="flex justify-between mt-1.5">
+      <div className="flex justify-between mt-1.5 relative">
         <span className="text-[#2a3444] text-[9px] font-mono">STANDARD</span>
+        <span className="text-[#2a3444] text-[9px] font-mono absolute left-1/2 -translate-x-1/2">DEEP SCAN</span>
         <span className="text-[#2a3444] text-[9px] font-mono">FULL SCAN</span>
       </div>
     </div>

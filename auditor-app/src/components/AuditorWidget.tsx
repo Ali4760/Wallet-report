@@ -146,7 +146,7 @@ const AuditorWidget: React.FC<Props> = ({
               </div>
               <div className="bg-[#0d1119] border border-[#1e2636] rounded px-2 py-0.5">
                 <span className="text-[#f0b90b] font-mono font-semibold text-[11px]">
-                  {analysisDepth > 10 ? 'Full Scan' : 'Standard'}
+                  {analysisDepth >= 14 ? 'Full Scan' : analysisDepth >= 7 ? 'Deep Scan' : 'Standard'}
                 </span>
               </div>
             </div>
