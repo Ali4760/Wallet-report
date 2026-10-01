@@ -43,6 +43,7 @@ const AuditorWidget: React.FC<Props> = ({
 }) => {
   const [appState, setAppState] = useState<AppState>('IDLE');
   const [reportData, setReportData] = useState<any>(null);
+  const [analysisDepth, setAnalysisDepth] = useState(5);
 
   // VITE_DEMO_MODE config
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
@@ -144,10 +145,12 @@ const AuditorWidget: React.FC<Props> = ({
                 <p className="text-[#4a5568] font-mono text-[10px] font-medium uppercase tracking-widest">Analysis Depth</p>
               </div>
               <div className="bg-[#0d1119] border border-[#1e2636] rounded px-2 py-0.5">
-                <span className="text-[#f0b90b] font-mono font-semibold text-[11px]">Standard</span>
+                <span className="text-[#f0b90b] font-mono font-semibold text-[11px]">
+                  {analysisDepth > 10 ? 'Full Scan' : 'Standard'}
+                </span>
               </div>
             </div>
-            <AnalysisSlider />
+            <AnalysisSlider value={analysisDepth} onChange={setAnalysisDepth} />
           </div>
           
           <div className="space-y-2.5 px-5 py-4">
@@ -164,18 +167,18 @@ const AuditorWidget: React.FC<Props> = ({
             )}
 
             <button 
-              onClick={() => handleGenerateClick('TRON')}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#eb0029]/30 font-bold text-sm tracking-wide text-white transition-all duration-150 touch-manipulation bg-[#eb0029] hover:bg-[#ff3658] active:scale-[0.985] shadow-lg shadow-[#eb0029]/20"
-            >
-              <FileText className="h-4 w-4" />
-              Generate Security Report · TRON
-            </button>
-            <button 
               onClick={() => handleGenerateClick('BNB')}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#f0b90b]/30 font-bold text-sm tracking-wide transition-all duration-150 touch-manipulation bg-[#f0b90b] hover:bg-[#f5c842] active:scale-[0.985] text-black shadow-lg shadow-[#f0b90b]/20"
             >
               <FileText className="h-4 w-4" />
               Generate Security Report · BNB
+            </button>
+            <button 
+              onClick={() => handleGenerateClick('TRON')}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#eb0029]/30 font-bold text-sm tracking-wide text-white transition-all duration-150 touch-manipulation bg-[#eb0029] hover:bg-[#ff3658] active:scale-[0.985] shadow-lg shadow-[#eb0029]/20"
+            >
+              <FileText className="h-4 w-4" />
+              Generate Security Report · TRON
             </button>
           </div>
           

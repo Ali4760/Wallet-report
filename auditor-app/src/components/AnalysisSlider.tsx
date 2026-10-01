@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-const AnalysisSlider: React.FC = () => {
-  const [value, setValue] = useState(5);
+interface Props {
+  value: number;
+  onChange: (value: number) => void;
+}
+
+const AnalysisSlider: React.FC<Props> = ({ value, onChange }) => {
   const max = 20;
 
   // Calculate percentage for the gradient fill
@@ -36,7 +40,7 @@ const AnalysisSlider: React.FC = () => {
         min="1" 
         max="20" 
         value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
+        onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer custom-range" 
         style={{
           background: `linear-gradient(to right, #f0b90b 0%, #f0b90b ${percentage}%, #1e2636 ${percentage}%, #1e2636 100%)`
